@@ -10,16 +10,6 @@ all_orders = []
 # --- ADD THIS AFTER YOUR IMPORTS ---
 from functools import wraps
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Checks if the admin is logged in
-        if not session.get('is_admin'):
-            # Remembers where you were going and forces a login
-            return redirect(url_for('admin_login', next=request.path))
-        return f(*args, **kwargs)
-    return decorated_function
-
 
 app = Flask(__name__)
 app.secret_key = "change_me_for_production"
@@ -29,40 +19,6 @@ app.config.update(
     SESSION_PERMANENT=False  # This tells the browser to delete the cookie on close
 )
 
-RAZORPAY_KEY_ID = "rzp_test_Rz1w5unkR91vTa"
-RAZORPAY_KEY_SECRET = "faqPPpwEsrOjizvw1BxuF72r"
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET ))
-
-def init_db():
-    con = sqlite3.connect("orders.db")
-    cur = con.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT, email TEXT, phone TEXT, address TEXT,
-            items TEXT, total INTEGER, placed_at TEXT
-        )
-    ''')
-    con.commit()
-    con.close()
-
-def init_messages_table():
-    con = sqlite3.connect("orders.db")
-    cur = con.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            email TEXT,
-            message TEXT,
-            sent_at TEXT
-        )
-    ''')
-    con.commit()
-    con.close()
-
-init_db()
-init_messages_table()
 
 
 bracelets = [
@@ -1388,6 +1344,7 @@ def clear_cart():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
