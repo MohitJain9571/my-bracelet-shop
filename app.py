@@ -1171,6 +1171,10 @@ function saveQty(itemIndex, delta) {
     </button>
 </div>
   
+ <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; border: 1px solid #ffeeba;">
+    <strong>Stall Notice:</strong> Online payment is currently unavailable. 
+    Please show this cart to the staff at the stall to pay in person!
+</div>
 
  <div class="cart-total-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 25px; background: #fffdf3; border: 2px solid #d3c486; border-radius: 18px; margin-top: 20px;">
     
@@ -1180,17 +1184,22 @@ function saveQty(itemIndex, delta) {
     
     <div class="cart-summary-actions" style="display: flex; gap: 10px; align-items: center;">
         
-        <a href="{{ url_for('clear_cart') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
-            <i class="fas fa-trash-alt me-2"></i>Clear All
-        </a>
+     <div style="display: flex; gap: 10px;">
+    <a href="{{ url_for('clear_cart') }}" class="btn-custom" style="...">
+        <i class="fas fa-trash-alt me-2"></i>Clear All
+    </a>
+
+    <a href="/" class="btn-custom" style="...">
+        Browse More
+    </a>
+</div>
         
-        <a href="{{ url_for('checkout') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
-            Proceed to Checkout
-        </a>
-        
-        <a href="{{ url_for('home') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
-            Browse More
-        </a>
+       
+    <button type="submit" style="display: none;">Proceed to Checkout</button>
+       
+       
+
+       
     </div>
 </div>  
 
