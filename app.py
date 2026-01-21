@@ -1,10 +1,8 @@
 
 
 from flask import Flask, render_template_string, request, redirect, url_for, session , render_template 
-import sqlite3
 from datetime import datetime
 import time
-import razorpay 
 
 all_orders = []
 
@@ -1390,6 +1388,7 @@ def clear_cart():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
