@@ -488,7 +488,7 @@ html_template = '''
       .header-section { padding: 80px 0; background: linear-gradient(135deg,#ccffdd 0%,#f8dbda 100%); text-align: center; }
       .header-section h1 { font-weight: 900; font-size: 3rem; margin-bottom: 18px; color: #231942; font-family: 'Playfair Display', serif; }
       .header-section p { font-size: 1.4rem; color: #444; font-family: 'Playfair Display', serif; }
-      .bracelet-card { border-radius: 22px; box-shadow: 0 10px 32px rgba(50,70,90,0.08); background: #fff; transition: box-shadow 0.2s, transform 0.2s; height: 100%; }
+      .bracelet-card {   border-radius: 22px; box-shadow: 0 10px 32px rgba(50,70,90,0.08);  background: #fff;transition: box-shadow 0.2s, transform 0.2s;min-height: auto;}
       .bracelet-card:hover { box-shadow: 0 20px 44px rgba(50,70,90,0.18); transform: scale(1.05); }
       .bracelet-img { width: 100%; height: 240px; object-fit: cover; border-top-left-radius: 22px; border-top-right-radius: 22px;}
       .card-body { padding: 1.7rem; }
@@ -740,7 +740,7 @@ html_template = '''
       <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
       <div class="row g-4">
         {% for b in bracelets %}
-        <div class="col-md-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
           <div class="card bracelet-card h-100">
             <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
             <div class="card-body">
@@ -759,7 +759,7 @@ html_template = '''
           </div>
         </div>
         <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div class="modal-content" style="border-radius:2em; overflow:hidden;">
               <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
               <div class="row g-0">
@@ -934,7 +934,11 @@ cart_template = """
 body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 .cart-main { max-width: 900px; margin: 46px auto; display: flex; flex-direction: column; gap: 38px;}
 .cart-row { background: #fff; border-radius: 24px; box-shadow: 0 8px 36px rgba(60,50,70,0.09); border: 2.3px solid #d3c486; display:flex; overflow:hidden; min-height:290px; align-items:center;}
-.cart-img-section { flex: 1.7; text-align: center; display:flex; justify-content:center; align-items:center; min-width:140px; max-width:340px; background:#f8f8f2; min-height:100%; overflow:hidden;}
+  .cart-img-section { width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+   
 .cart-img { max-width:97%; width:285px; min-width:120px; height:auto; margin:auto; border-radius:18px; object-fit:contain; display:block;}
 .cart-content { flex: 2.1; padding:10px 38px; display:flex; flex-direction:column; gap:10px;}
 .cart-title { font-size:1.31rem; font-weight:700; color:#232323; margin-bottom:4px;}
@@ -968,6 +972,37 @@ body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 }
 .empty-icon { font-size: 4rem; color: #ceb83a; margin-bottom: 20px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-10px);} 60%{transform:translateY(-5px);} }
+/* ✅ FIX 4: Make cart look beautiful on mobile */
+@media (max-width: 768px) {
+  .cart-row {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: auto;
+  }
+  .cart-img-section {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  .cart-content {
+    padding: 20px;
+  }
+  .cart-img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+  .cart-main {
+    padding: 0 10px;
+  }
+}
+
+/* ✅ FIX 5: Allow smooth scrolling on mobile */
+body {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 
 </style>
 <script>
@@ -1345,6 +1380,7 @@ def clear_cart():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
