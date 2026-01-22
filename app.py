@@ -1,6 +1,7 @@
 
 
 
+
 from flask import Flask, render_template_string, request, redirect, url_for, session , render_template 
 from datetime import datetime
 import time
@@ -670,34 +671,6 @@ html_template = '''
         0%, 80%, 100% { opacity: 0.2; }
         40% { opacity: 0.97; }
       }
-
-      .btn-close {
-  z-index: 2000 !important;
-  position: absolute !important;
-  right: 15px;
-  top: 15px;
-}
-
-/* ✅ Mobile card resize fix */
-@media (max-width: 576px) {
-  .bracelet-card {
-    transform: scale(0.9);
-    margin: 0 auto;
-  }
-  .card-body {
-    padding: 1rem;
-  }
-  .card-title {
-    font-size: 1.1rem;
-  }
-  .bracelet-price {
-    font-size: 1rem;
-  }
-  .bracelet-img {
-    height: 180px;
-  }
-}
-
     </style>
 </head>
 <body>
@@ -768,7 +741,7 @@ html_template = '''
       <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
       <div class="row g-4">
         {% for b in bracelets %}
-          <div class="col-6 col-md-4 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-4">
           <div class="card bracelet-card h-100">
             <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
             <div class="card-body">
@@ -788,7 +761,7 @@ html_template = '''
         </div>
         <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <div class="modal-content" style="border-radius:2em; overflow-y:auto; max-height:90vh;">
+            <div class="modal-content" style="border-radius:2em; overflow:hidden;">
               <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
               <div class="row g-0">
                 <div class="col-md-6" style="background:#f7fafd;">
@@ -928,7 +901,6 @@ cart_template = """
 <head>
 <meta charset="UTF-8" />
 <title>Your Cart - Treasures Jewels</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
@@ -1001,32 +973,30 @@ body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 }
 .empty-icon { font-size: 4rem; color: #ceb83a; margin-bottom: 20px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-10px);} 60%{transform:translateY(-5px);} }
-   /* ✅ Fix 2: Make size buttons fit in one line and center the product */
-@media (max-width: 576px) {
-  .cart-content,
-  .modal-body {
-    text-align: center;
+/* ✅ FIX 4: Make cart look beautiful on mobile */
+@media (max-width: 768px) {
+  .cart-row {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: auto;
   }
-  .size-btn,
-  .beadsize-btn {
-    flex: 1 1 auto;
-    min-width: 50px;
-    font-size: 0.9rem;
-    padding: 5px 10px;
+  .cart-img-section {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
   }
-  .cart-sizes,
-  .cart-beadsizes {
-    flex-wrap: nowrap;
-    justify-content: center;
-    overflow-x: auto;
+  .cart-content {
+    padding: 20px;
   }
   .cart-img {
-    max-width: 80%;
-    margin: 0 auto;
-    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+  .cart-main {
+    padding: 0 10px;
   }
 }
-
 
 /* ✅ FIX 5: Allow smooth scrolling on mobile */
 body {
@@ -1205,26 +1175,26 @@ function saveQty(itemIndex, delta) {
         Grand Total: <span id="grandtotal">₹{{ total }}</span>
     </div>
     
-  <div class="cart-summary-actions" style="display: flex; gap: 10px; align-items: center;">
-  <div style="display: flex; gap: 10px;">
-    <a href="{{ url_for('clear_cart') }}" class="btn-custom">
-      <i class="fas fa-trash-alt me-2"></i>Clear All
+    <div class="cart-summary-actions" style="display: flex; gap: 10px; align-items: center;">
+        
+     <div style="display: flex; gap: 10px;">
+    <a href="{{ url_for('clear_cart') }}" class="btn-custom" style="...">
+        <i class="fas fa-trash-alt me-2"></i>Clear All
     </a>
-    <a href="/" class="btn-custom">
-      Browse More
+
+    <a href="/" class="btn-custom" style="...">
+        Browse More
     </a>
-  </div>
 </div>
-
-<!-- ✅ Ready to Purchase box (moved below buttons) -->
-<div style="background-color: #f8d7da; color: #721c24; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #f5c6cb; margin-top: 20px;">
-  <h3 style="margin: 0 0 10px 0;">✨ Ready to Purchase? ✨</h3>
-  <p style="font-size: 1.1rem; margin-bottom: 0;">
-    Please <strong>visit our stall counter</strong> to pay and collect your bracelets. 
-    Show us your screen so we can see your selection!
-  </p>
+        
+       
+   <div style="background-color: #f8d7da; color: #721c24; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #f5c6cb; margin-top: 20px;">
+    <h3 style="margin: 0 0 10px 0;">✨ Ready to Purchase? ✨</h3>
+    <p style="font-size: 1.1rem; margin-bottom: 0;">
+        Please <strong>visit our stall counter</strong> to pay and collect your bracelets. 
+        Show us your screen so we can see your selection!
+    </p>
 </div>
-
        
     
        
@@ -1411,8 +1381,6 @@ def clear_cart():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
 
 
 
