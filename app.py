@@ -670,6 +670,13 @@ html_template = '''
         0%, 80%, 100% { opacity: 0.2; }
         40% { opacity: 0.97; }
       }
+
+      .btn-close {
+  z-index: 2000 !important;
+  position: absolute !important;
+  right: 15px;
+  top: 15px;
+}
     </style>
 </head>
 <body>
@@ -740,7 +747,7 @@ html_template = '''
       <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
       <div class="row g-4">
         {% for b in bracelets %}
-        <div class="col-12 col-sm-6 col-lg-4">
+        <div class="col-6 col-md-4 col-lg-3">
           <div class="card bracelet-card h-100">
             <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
             <div class="card-body">
@@ -760,7 +767,7 @@ html_template = '''
         </div>
         <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-            <div class="modal-content" style="border-radius:2em; overflow:hidden;">
+            <div class="modal-content" style="border-radius:2em; overflow-y:auto; max-height:90vh;">
               <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
               <div class="row g-0">
                 <div class="col-md-6" style="background:#f7fafd;">
@@ -900,6 +907,7 @@ cart_template = """
 <head>
 <meta charset="UTF-8" />
 <title>Your Cart - Treasures Jewels</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
@@ -972,28 +980,24 @@ body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 }
 .empty-icon { font-size: 4rem; color: #ceb83a; margin-bottom: 20px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-10px);} 60%{transform:translateY(-5px);} }
-/* ✅ FIX 4: Make cart look beautiful on mobile */
+   /* ✅ FIX: make cart items stack correctly on phone */
 @media (max-width: 768px) {
   .cart-row {
-    flex-direction: column;
-    align-items: stretch;
-    min-height: auto;
+    flex-direction: column !important;
+    text-align: center;
+  }
+  .cart-content {
+    align-items: center;
+    padding: 20px;
   }
   .cart-img-section {
     width: 100%;
-    max-width: 100%;
-    height: auto;
-  }
-  .cart-content {
-    padding: 20px;
   }
   .cart-img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
+    max-width: 250px;
   }
   .cart-main {
-    padding: 0 10px;
+    padding: 10px;
   }
 }
 
@@ -1380,6 +1384,7 @@ def clear_cart():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
