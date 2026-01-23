@@ -671,6 +671,100 @@ html_template = '''
         0%, 80%, 100% { opacity: 0.2; }
         40% { opacity: 0.97; }
       }
+
+    
+    .bracelet-card {
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.bracelet-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.bracelet-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.card-body {
+  padding: 0.9rem;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: #1d473a;
+}
+
+.bracelet-price {
+  font-size: 0.9rem;
+  color: #c53211;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.card-text {
+  font-size: 0.82rem;
+  color: #555;
+  line-height: 1.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* only 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.5rem;
+}
+
+.benefits-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.benefits-list li::before {
+  content: "✓ ";
+  color: #1d473a;
+  font-weight: bold;
+}
+
+.btn {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .col-6 {
+    flex: 0 0 48%;
+    max-width: 48%;
+  }
+  .bracelet-img {
+    height: 140px;
+  }
+  .card-title {
+    font-size: 0.9rem;
+  }
+  .card-text {
+    font-size: 0.75rem;
+  }
+  .btn {
+    font-size: 0.75rem;
+  }
+}
+
+
     </style>
 </head>
 <body>
@@ -738,65 +832,76 @@ html_template = '''
     </header>
 
     <section id="collection" class="container my-5">
-      <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
-      <div class="row g-4">
-        {% for b in bracelets %}
-        <div class="col-md-6 col-lg-4">
-          <div class="card bracelet-card h-100">
-            <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
-            <div class="card-body">
-              <h5 class="card-title">{{ b.name }}</h5>
-              <div class="bracelet-price">&#x20B9; {{ b.price }}</div>
-              <div class="card-text mb-2" style="font-size:1rem; color:#3e3e3e;">{{ b.description }}</div>
-              <ul class="benefits-list">
-                {% for ben in b.benefits %}
-                <li>{{ ben }}</li>
-                {% endfor %}
-              </ul>
-              <button type="button" class="btn btn-success mt-3 w-100" data-bs-toggle="modal" data-bs-target="#modal{{ loop.index }}">
-                <i class="bi bi-cart-plus"></i> View & Add to Cart
-              </button>
-            </div>
-          </div>
+  <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
+
+  <div class="row g-4 justify-content-center">
+    {% for b in bracelets %}
+    <div class="col-6 col-md-4 col-lg-3">  <!-- ✅ 2 per row (phone), 3 per row (tablet), 4 per row (desktop) -->
+      <div class="card bracelet-card h-100">
+        <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
+        <div class="card-body">
+          <h5 class="card-title">{{ b.name }}</h5>
+          <div class="bracelet-price">&#x20B9; {{ b.price }}</div>
+
+          <!-- ✅ Description shortened -->
+          <div class="card-text mb-2">{{ b.description }}</div>
+
+          <!-- ✅ Only first 2 benefits -->
+          <ul class="benefits-list">
+            {% for ben in b.benefits[:2] %}
+            <li>{{ ben }}</li>
+            {% endfor %}
+          </ul>
+
+          <button type="button" class="btn btn-success mt-3 w-100" data-bs-toggle="modal" data-bs-target="#modal{{ loop.index }}">
+            <i class="bi bi-cart-plus"></i> View & Add to Cart
+          </button>
         </div>
-        <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content" style="border-radius:2em; overflow:hidden;">
-              <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
-              <div class="row g-0">
-                <div class="col-md-6" style="background:#f7fafd;">
-                  <img src="{{ url_for('static', filename=b.image) }}" class="img-fluid w-100" style="max-height:440px;object-fit:cover;" alt="{{ b.name }} image">
-                </div>
-                <div class="col-md-6 d-flex align-items-center">
-                  <form class="modal-body w-100"
-                        method="POST"
-                        action="{{ url_for('add_to_cart') }}"
-                        onsubmit="return updateHiddenFields({{ b.price }}, '{{ b.name }}', {{ loop.index }})">
-                    <h4 class="mb-0">{{ b.name }}</h4>
-                    <div class="text-secondary mb-2">&#x20B9; <span id="price{{ loop.index }}">{{ b.price }}</span></div>
-                    <div class="mb-2">{{ b.description }}</div>
-                    <div>
-                      <label for="qty{{ loop.index }}" class="form-label">Quantity:</label>
-                      <div class="input-group mb-3" style="max-width:200px;">
-                        <button type="button" class="btn btn-outline-secondary" onclick="decreaseQty({{ loop.index }}, {{ b.price }})">-</button>
-                        <input id="qty{{ loop.index }}" type="text" class="form-control text-center" value="1" readonly style="font-weight:600; font-size:1.1rem;">
-                        <button type="button" class="btn btn-outline-secondary" onclick="increaseQty({{ loop.index }}, {{ b.price }})">+</button>
-                      </div>
-                      <input type="hidden" name="bracelet_name" id="bracename{{ loop.index }}" value="{{ b.name }}">
-                      <input type="hidden" name="bracelet_price" id="braceprice{{ loop.index }}" value="{{ b.price }}">
-                      <input type="hidden" name="quantity" id="qtyinput{{ loop.index }}" value="1">
-                      <div><b>Total: ₹<span id="total{{ loop.index }}">{{ b.price }}</span></b></div>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100 mt-3">Add to Cart</button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
       </div>
-    </section>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:2em; overflow:hidden;">
+          <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="row g-0">
+            <div class="col-md-6" style="background:#f7fafd;">
+              <img src="{{ url_for('static', filename=b.image) }}" class="img-fluid w-100" style="max-height:440px;object-fit:cover;" alt="{{ b.name }} image">
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <form class="modal-body w-100"
+                    method="POST"
+                    action="{{ url_for('add_to_cart') }}"
+                    onsubmit="return updateHiddenFields({{ b.price }}, '{{ b.name }}', {{ loop.index }})">
+                <h4 class="mb-0">{{ b.name }}</h4>
+                <div class="text-secondary mb-2">&#x20B9; <span id="price{{ loop.index }}">{{ b.price }}</span></div>
+                <div class="mb-2">{{ b.description }}</div>
+                <div>
+                  <label for="qty{{ loop.index }}" class="form-label">Quantity:</label>
+                  <div class="input-group mb-3" style="max-width:200px;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="decreaseQty({{ loop.index }}, {{ b.price }})">-</button>
+                    <input id="qty{{ loop.index }}" type="text" class="form-control text-center" value="1" readonly style="font-weight:600; font-size:1.1rem;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="increaseQty({{ loop.index }}, {{ b.price }})">+</button>
+                  </div>
+                  <input type="hidden" name="bracelet_name" id="bracename{{ loop.index }}" value="{{ b.name }}">
+                  <input type="hidden" name="bracelet_price" id="braceprice{{ loop.index }}" value="{{ b.price }}">
+                  <input type="hidden" name="quantity" id="qtyinput{{ loop.index }}" value="1">
+                  <div><b>Total: ₹<span id="total{{ loop.index }}">{{ b.price }}</span></b></div>
+                </div>
+                <button type="submit" class="btn btn-success w-100 mt-3">Add to Cart</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+
+
 
     <section id="about" class="about-section">
       <div class="container text-center">
@@ -969,6 +1074,106 @@ body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 }
 .empty-icon { font-size: 4rem; color: #ceb83a; margin-bottom: 20px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-10px);} 60%{transform:translateY(-5px);} }
+
+
+/* ============================= */
+/* 📱 Responsive Cart Page Fixes */
+/* ============================= */
+
+@media (max-width: 992px) {
+  .cart-row {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: auto;
+    padding: 15px;
+  }
+
+  .cart-img-section {
+    width: 100%;
+    max-width: 100%;
+    min-height: 180px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .cart-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: 16px;
+  }
+
+  .cart-content {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .cart-title {
+    font-size: 1.15rem;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .cart-qty-section {
+    justify-content: center;
+  }
+
+  .cart-actions {
+    justify-content: center;
+  }
+
+  .cart-sizes,
+  .cart-beadsizes {
+    justify-content: center;
+  }
+
+  .cart-total-summary {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px 20px;
+    gap: 20px;
+  }
+
+  .cart-summary-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-custom {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .cart-row {
+    margin-bottom: 20px;
+  }
+
+  .cart-img {
+    max-height: 160px;
+  }
+
+  .cart-title {
+    font-size: 1rem;
+  }
+
+  .cart-price {
+    font-size: 1.1rem;
+  }
+
+  .cart-label {
+    font-size: 1rem;
+  }
+
+  .empty-cart {
+    padding: 40px 20px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+  }
+}
 
 </style>
 <script>
@@ -1345,8 +1550,7 @@ def clear_cart():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
+    app.run(debug=True)          
 
 
 
