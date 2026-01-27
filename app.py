@@ -1,16 +1,24 @@
-
-
-
-
 from flask import Flask, render_template_string, request, redirect, url_for, session , render_template 
+import sqlite3
 from datetime import datetime
 import time
+import razorpay 
 
 all_orders = []
 
 
 # --- ADD THIS AFTER YOUR IMPORTS ---
 from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Checks if the admin is logged in
+        if not session.get('is_admin'):
+            # Remembers where you were going and forces a login
+            return redirect(url_for('admin_login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 app = Flask(__name__)
@@ -21,6 +29,40 @@ app.config.update(
     SESSION_PERMANENT=False  # This tells the browser to delete the cookie on close
 )
 
+RAZORPAY_KEY_ID = "rzp_test_Rz1w5unkR91vTa"
+RAZORPAY_KEY_SECRET = "faqPPpwEsrOjizvw1BxuF72r"
+client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET ))
+
+def init_db():
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT, email TEXT, phone TEXT, address TEXT,
+            items TEXT, total INTEGER, placed_at TEXT
+        )
+    ''')
+    con.commit()
+    con.close()
+
+def init_messages_table():
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT,
+            message TEXT,
+            sent_at TEXT
+        )
+    ''')
+    con.commit()
+    con.close()
+
+init_db()
+init_messages_table()
 
 
 bracelets = [
@@ -671,100 +713,6 @@ html_template = '''
         0%, 80%, 100% { opacity: 0.2; }
         40% { opacity: 0.97; }
       }
-
-    
-    .bracelet-card {
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  background: #fff;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  overflow: hidden;
-}
-
-.bracelet-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
-.bracelet-img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-}
-
-.card-body {
-  padding: 0.9rem;
-}
-
-.card-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 5px;
-  color: #1d473a;
-}
-
-.bracelet-price {
-  font-size: 0.9rem;
-  color: #c53211;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.card-text {
-  font-size: 0.82rem;
-  color: #555;
-  line-height: 1.2rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2; /* only 2 lines */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-height: 2.5rem;
-}
-
-.benefits-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
-  font-size: 0.8rem;
-  color: #444;
-}
-
-.benefits-list li::before {
-  content: "✓ ";
-  color: #1d473a;
-  font-weight: bold;
-}
-
-.btn {
-  font-size: 0.85rem;
-  padding: 6px 10px;
-  border-radius: 8px;
-}
-
-/* Responsive */
-@media (max-width: 576px) {
-  .col-6 {
-    flex: 0 0 48%;
-    max-width: 48%;
-  }
-  .bracelet-img {
-    height: 140px;
-  }
-  .card-title {
-    font-size: 0.9rem;
-  }
-  .card-text {
-    font-size: 0.75rem;
-  }
-  .btn {
-    font-size: 0.75rem;
-  }
-}
-
-
     </style>
 </head>
 <body>
@@ -831,76 +779,106 @@ html_template = '''
       </div>
     </header>
 
-    <section id="collection" class="container my-5">
+   <section id="collection" class="container my-5">
   <h2 class="section-title text-center">Our Exclusive Gemstone Bracelets</h2>
 
-  <div class="row g-4 justify-content-center">
+  <div class="row g-4">
     {% for b in bracelets %}
-    <div class="col-6 col-md-4 col-lg-3">  <!-- ✅ 2 per row (phone), 3 per row (tablet), 4 per row (desktop) -->
+
+    <div class="col-md-6 col-lg-4">
       <div class="card bracelet-card h-100">
-        <img src="{{ url_for('static', filename=b.image) }}" class="bracelet-img" alt="{{ b.name }}">
+        <img src="{{ url_for('static', filename=b.image) }}"
+             class="bracelet-img"
+             alt="{{ b.name }}">
+
         <div class="card-body">
           <h5 class="card-title">{{ b.name }}</h5>
-          <div class="bracelet-price">&#x20B9; {{ b.price }}</div>
+          <div class="bracelet-price">₹ {{ b.price }}</div>
 
-          <!-- ✅ Description shortened -->
-          <div class="card-text mb-2">{{ b.description }}</div>
+          <div class="card-text mb-2" style="font-size:1rem; color:#3e3e3e;">
+            {{ b.description }}
+          </div>
 
-          <!-- ✅ Only first 2 benefits -->
           <ul class="benefits-list">
-            {% for ben in b.benefits[:2] %}
-            <li>{{ ben }}</li>
+            {% for ben in b.benefits %}
+              <li>{{ ben }}</li>
             {% endfor %}
           </ul>
 
-          <button type="button" class="btn btn-success mt-3 w-100" data-bs-toggle="modal" data-bs-target="#modal{{ loop.index }}">
+          <button type="button"
+                  class="btn btn-success mt-3 w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modal{{ loop.index }}">
             <i class="bi bi-cart-plus"></i> View & Add to Cart
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Product Modal -->
+    <!-- MODAL -->
     <div class="modal fade" id="modal{{ loop.index }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:2em; overflow:hidden;">
-          <button type="button" class="btn-close position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
+
+          <button type="button"
+                  class="btn-close position-absolute top-0 end-0 m-4"
+                  data-bs-dismiss="modal"></button>
+
           <div class="row g-0">
             <div class="col-md-6" style="background:#f7fafd;">
-              <img src="{{ url_for('static', filename=b.image) }}" class="img-fluid w-100" style="max-height:440px;object-fit:cover;" alt="{{ b.name }} image">
+              <img src="{{ url_for('static', filename=b.image) }}"
+                   class="img-fluid w-100"
+                   style="max-height:440px; object-fit:cover;"
+                   alt="{{ b.name }}">
             </div>
+
             <div class="col-md-6 d-flex align-items-center">
               <form class="modal-body w-100"
                     method="POST"
                     action="{{ url_for('add_to_cart') }}"
                     onsubmit="return updateHiddenFields({{ b.price }}, '{{ b.name }}', {{ loop.index }})">
+
                 <h4 class="mb-0">{{ b.name }}</h4>
-                <div class="text-secondary mb-2">&#x20B9; <span id="price{{ loop.index }}">{{ b.price }}</span></div>
-                <div class="mb-2">{{ b.description }}</div>
-                <div>
-                  <label for="qty{{ loop.index }}" class="form-label">Quantity:</label>
-                  <div class="input-group mb-3" style="max-width:200px;">
-                    <button type="button" class="btn btn-outline-secondary" onclick="decreaseQty({{ loop.index }}, {{ b.price }})">-</button>
-                    <input id="qty{{ loop.index }}" type="text" class="form-control text-center" value="1" readonly style="font-weight:600; font-size:1.1rem;">
-                    <button type="button" class="btn btn-outline-secondary" onclick="increaseQty({{ loop.index }}, {{ b.price }})">+</button>
-                  </div>
-                  <input type="hidden" name="bracelet_name" id="bracename{{ loop.index }}" value="{{ b.name }}">
-                  <input type="hidden" name="bracelet_price" id="braceprice{{ loop.index }}" value="{{ b.price }}">
-                  <input type="hidden" name="quantity" id="qtyinput{{ loop.index }}" value="1">
-                  <div><b>Total: ₹<span id="total{{ loop.index }}">{{ b.price }}</span></b></div>
+                <div class="text-secondary mb-2">₹ {{ b.price }}</div>
+
+                <label class="form-label">Quantity:</label>
+                <div class="input-group mb-3" style="max-width:200px;">
+                  <button type="button"
+                          class="btn btn-outline-secondary"
+                          onclick="decreaseQty({{ loop.index }}, {{ b.price }})">-</button>
+
+                  <input id="qty{{ loop.index }}"
+                         type="text"
+                         class="form-control text-center"
+                         value="1"
+                         readonly>
+
+                  <button type="button"
+                          class="btn btn-outline-secondary"
+                          onclick="increaseQty({{ loop.index }}, {{ b.price }})">+</button>
                 </div>
-                <button type="submit" class="btn btn-success w-100 mt-3">Add to Cart</button>
+
+                <input type="hidden" name="bracelet_name" id="bracename{{ loop.index }}" value="{{ b.name }}">
+                <input type="hidden" name="bracelet_price" id="braceprice{{ loop.index }}" value="{{ b.price }}">
+                <input type="hidden" name="quantity" id="qtyinput{{ loop.index }}" value="1">
+
+                <div><b>Total: ₹<span id="total{{ loop.index }}">{{ b.price }}</span></b></div>
+
+                <button type="submit" class="btn btn-success w-100 mt-3">
+                  Add to Cart
+                </button>
+
               </form>
             </div>
           </div>
+
         </div>
       </div>
     </div>
+
     {% endfor %}
   </div>
 </section>
-
-
 
 
     <section id="about" class="about-section">
@@ -1075,99 +1053,6 @@ body { background: #ebe4f5; font-family: 'Playfair Display', serif; margin: 0; }
 .empty-icon { font-size: 4rem; color: #ceb83a; margin-bottom: 20px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-10px);} 60%{transform:translateY(-5px);} }
 
-
-.cart-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  background: #fffef9;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  padding: 14px 18px;
-  gap: 14px;
-  margin-bottom: 15px;
-  transition: 0.3s ease;
-}
-.cart-row:hover {
-  box-shadow: 0 6px 14px rgba(0,0,0,0.1);
-}
-.cart-img-section {
-  flex: 0 0 160px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.cart-img {
-  width: 150px;
-  height: 150px;
-  border-radius: 12px;
-  object-fit: cover;
-}
-.cart-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-.cart-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #2a2a2a;
-  margin-bottom: 2px;
-}
-.cart-price,
-.cart-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #b69329;
-}
-.cart-details {
-  font-size: 0.95rem;
-  color: #3d3d3d;
-  line-height: 1.3;
-}
-.cart-qty-section,
-.cart-sizes,
-.cart-beadsizes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
-  margin: 2px 0;
-}
-.size-btn,
-.beadsize-btn,
-.qty-btn {
-  font-size: 0.85rem;
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-@media (max-width:768px) {
-  .cart-row {
-    flex-direction: row;
-    align-items: flex-start;
-    padding: 10px;
-    gap: 10px;
-  }
-  .cart-img-section {
-    flex: 0 0 120px;
-  }
-  .cart-img {
-    width: 110px;
-    height: 110px;
-  }
-  .cart-title {
-    font-size: 1rem;
-  }
-  .cart-details,
-  .cart-label,
-  .cart-price {
-    font-size: 0.9rem;
-  }
-}
-
-  
 </style>
 <script>
 window.addEventListener('load', () => {
@@ -1327,10 +1212,6 @@ function saveQty(itemIndex, delta) {
     </button>
 </div>
   
- <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; border: 1px solid #ffeeba;">
-    <strong>Stall Notice:</strong> Online payment is currently unavailable. 
-    Please show this cart to the staff at the stall to pay in person!
-</div>
 
  <div class="cart-total-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 25px; background: #fffdf3; border: 2px solid #d3c486; border-radius: 18px; margin-top: 20px;">
     
@@ -1340,27 +1221,17 @@ function saveQty(itemIndex, delta) {
     
     <div class="cart-summary-actions" style="display: flex; gap: 10px; align-items: center;">
         
-     <div style="display: flex; gap: 10px;">
-    <a href="{{ url_for('clear_cart') }}" class="btn-custom" style="...">
-        <i class="fas fa-trash-alt me-2"></i>Clear All
-    </a>
-
-    <a href="/" class="btn-custom" style="...">
-        Browse More
-    </a>
-</div>
+        <a href="{{ url_for('clear_cart') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
+            <i class="fas fa-trash-alt me-2"></i>Clear All
+        </a>
         
-       
-   <div style="background-color: #f8d7da; color: #721c24; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #f5c6cb; margin-top: 20px;">
-    <h3 style="margin: 0 0 10px 0;">✨ Ready to Purchase? ✨</h3>
-    <p style="font-size: 1.1rem; margin-bottom: 0;">
-        Please <strong>visit our stall counter</strong> to pay and collect your bracelets. 
-        Show us your screen so we can see your selection!
-    </p>
-</div>
-       
-    
-       
+        <a href="{{ url_for('checkout') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
+            Proceed to Checkout
+        </a>
+        
+        <a href="{{ url_for('home') }}" class="btn-custom" style="text-decoration:none; padding: 10px 20px; font-size: 1rem; display: flex; align-items: center; line-height: 1;">
+            Browse More
+        </a>
     </div>
 </div>  
 
@@ -1472,6 +1343,284 @@ document.addEventListener('DOMContentLoaded', () => {
 </html>
 """
 
+checkout_template = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Checkout - Treasures Jewels</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            background: linear-gradient(120deg, #eafafc 0%, #e6ede6 100%);
+            font-family: 'Playfair Display', serif;
+        }
+        .checkout-main {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 35px 8px;
+        }
+        .checkout-card {
+            background: rgba(255, 255, 255, 0.84);
+            border-radius: 32px;
+            box-shadow: 0 16px 64px rgba(40,80,80,0.12);
+            max-width: 570px;
+            width: 100%;
+            padding: 46px 46px 32px 46px;
+            border: 1.5px solid #f6e4ad;
+        }
+        h2 {
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #234a37;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 2.2rem;
+            letter-spacing: .9px;
+        }
+        .checkout-card h2 i {
+            color: #b8a248;
+            font-size: 2rem;
+            margin-right: 8px;
+        }
+        label {
+            font-weight: 700;
+            color: #b8a248;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.09rem;
+            margin-bottom: .5em;
+        }
+        input, textarea {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.12rem;
+            border-radius: 13px;
+            margin-bottom: 19px;
+            padding: 11px;
+            width: 100%;
+            border: 1.5px solid #b8a248;
+            background: rgba(248,243,223,0.11);
+        }
+        .btn-success {
+            font-weight: 600;
+            font-family: 'Playfair Display', serif;
+            border-radius: 12px;
+            padding: 14px 0;
+            font-size: 1.22rem;
+            margin-bottom: 14px;
+            background: linear-gradient(90deg, #c8e1bb, #efd490 110%);
+            border: none;
+        }
+        .btn-success:hover {
+            background: linear-gradient(90deg, #e1eec9,#ffe7ad 110%);
+            color: #1c3b2d;
+        }
+        .btn-secondary {
+            border-radius: 11px;
+            padding: 13px 0;
+            font-size: 1.07rem;
+            font-weight: 700;
+            background: linear-gradient(90deg,#efefef,#efefef 110%);
+            color: #345a42;
+            font-family: 'Playfair Display', serif;
+            border: none;
+        }
+        h4 {
+            color: #b8a248;
+            margin-top: 24px;
+            margin-bottom: 18px;
+            font-size: 1.18rem;
+            font-weight: 700;
+            font-family: 'Playfair Display', serif;
+        }
+        ul {
+            font-size: 1.08rem;
+            color: #405d3e;
+            margin-bottom: 16px;
+            margin-top: 12px;
+        }
+        b {
+            color: #b8a248;
+        }
+        .cart-product-desc {
+            color: #9a915d;
+            font-size: 0.98rem;
+            margin-top: 2px;
+        }
+        #rzp-button {
+            display: none;
+        }
+        .payment-section {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="checkout-main">
+    <div class="checkout-card">
+        <h2><i class="bi bi-lock"></i>Secure Checkout</h2>
+        <form id="checkout-form">
+            <label>Name *</label>
+            <input type="text" id="name" name="name" required class="form-control"/>
+            <label>Email *</label>
+            <input type="email" id="email" name="email" required class="form-control"/>
+            <label>Phone *</label>
+            <input type="text" id="phone" name="phone" required class="form-control"/>
+            <label>Shipping Address *</label>
+            <textarea id="address" name="address" required class="form-control" rows="4"></textarea>
+            <h4>Your Cart</h4>
+            <ul>
+                {% for item in cart %}
+                    <li>
+                        <span style="font-weight:700;">{{item.quantity}} × {{item.name}}</span>
+                        <span style="color:#b8a248;">(₹{{item.price}} each)</span>
+                        <br>
+                        {% for b in bracelets if b.name==item.name %}
+                           <span class="cart-product-desc">{{ b.description }}</span>
+                        {% endfor %}
+                    </li>
+                {% endfor %}
+            </ul>
+           <p style="margin-top:9px;"><b>Total: ₹{{ "%.0f"|format(total) }}</b></p>
+<button type="button" id="rzp-button" class="btn btn-success w-100" style="display:block !important;"> ₹{{ "%.0f"|format(total) }} Pay  </button>
+<div class="payment-section">
+    <p><small>🧪 Test: 4111 1111 1111 1111 | Debug: Order {{ order.id if order else 'MISSING' }}</small></p>
+
+        </form> 
+    </div>
+</div>
+<script>
+    var options = {
+        "key": "{{ key_id }}",
+        "amount": "{{ total*100 }}",       
+        "currency": "INR",
+        "name": "Treasures Jewels",
+        "description": "Premium Bracelets",
+        "order_id": "{{ order['id'] }}",
+        "handler": function (response){
+            // Payment success - send to your server
+            var form = document.getElementById('checkout-form');
+            var formData = new FormData(form);
+            formData.append('razorpay_payment_id', response.razorpay_payment_id);
+            formData.append('razorpay_order_id', response.razorpay_order_id);
+            formData.append('razorpay_signature', response.razorpay_signature);
+            fetch('/verify_payment', {
+                method: 'POST',
+                body: formData
+            }).then(function(res){
+                window.location.href = '/success';
+            });
+        },
+        "prefill": {
+            "name": document.getElementById('name').value || "",
+            "email": document.getElementById('email').value || "",
+            "contact": document.getElementById('phone').value || ""
+        },
+        "theme": {
+            "color": "#b8a248"
+        }
+    };
+    var rzp = new Razorpay(options);
+    document.getElementById('rzp-button').onclick = function(e){
+        var name = document.getElementById('name').value;
+        var email = document.getElementById('email').value;
+        var phone = document.getElementById('phone').value;
+        var address = document.getElementById('address').value;
+        if (!name || !email || !phone || !address) {
+            alert('Please fill all details first');
+            e.preventDefault();
+            return;
+        }
+        rzp.open();
+        e.preventDefault();
+    }
+</script>
+</body>
+</html>
+'''
+
+
+
+confirmation_template = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed | Treasures Jewels</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
+        
+        body { background-color: #fdfaf0; font-family: 'Poppins', sans-serif; color: #333; }
+        .success-container { max-width: 600px; margin: 50px auto; padding: 20px; }
+        .success-card { 
+            background: white; 
+            border: 2px solid #d3c486; 
+            border-radius: 20px; 
+            padding: 40px; 
+            box-shadow: 0 10px 30px rgba(161, 138, 34, 0.1);
+            text-align: center;
+        }
+        h1 { font-family: 'Playfair Display', serif; color: #3a491d; font-weight: 800; margin-bottom: 20px; }
+        .icon-circle {
+            width: 80px; height: 80px; background: #f5e3ab; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 25px; font-size: 40px; color: #a18a22;
+        }
+        .order-box {
+            background: #fffdf3; border-radius: 15px; padding: 20px;
+            border: 1px dashed #d3c486; margin: 30px 0; text-align: left;
+        }
+        .delivery-highlight { color: #a18a22; font-weight: 600; }
+        .btn-gold {
+            background: linear-gradient(90deg, #f5e3ab, #e7d8f7);
+            color: #3a491d; border: none; padding: 12px 35px;
+            font-weight: bold; border-radius: 10px; text-decoration: none;
+            display: inline-block; transition: transform 0.2s;
+        }
+        .btn-gold:hover { transform: scale(1.05); color: #3a491d; }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-card">
+            <div class="icon-circle">✨</div>
+            <h1>Order Confirmed!</h1>
+            <p>Dear <strong>{{ order.name }}</strong>, thank you for shopping with us! Your jewelry is being handcrafted and will be shipped shortly.</p>
+            
+            <div class="order-box">
+                <p style="margin-bottom: 8px;"><strong>Order ID:</strong> #{{ order.id if order.id else 'TJ-SUCCESS' }}</p>
+                <p style="margin-bottom: 8px;"><strong>Status:</strong> <span style="color: #3a491d;">Paid & Confirmed</span></p>
+                <p style="margin-bottom: 0;"><strong>Estimated Delivery:</strong> 
+                    <span id="arrival-date" class="delivery-highlight"></span>
+                </p>
+            </div>
+
+            <p style="font-size: 0.9rem; color: #888; margin-bottom: 25px;">
+                A tracking link will be sent to your shipping address details once the package leaves our facility.
+            </p>
+
+            <a href="/" class="btn-gold">Continue Shopping</a>
+        </div>
+    </div>
+
+    <script>
+        // Automatically calculates a date 7 days from today
+        let delivery = new Date();
+        delivery.setDate(delivery.getDate() + 7);
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        document.getElementById('arrival-date').innerText = delivery.toLocaleDateString('en-IN', options);
+    </script>
+</body>
+</html>
+'''
+
 @app.route('/')
 def home():
     return render_template_string(html_template, bracelets=bracelets)
@@ -1541,19 +1690,223 @@ def clear_cart():
     session.modified = True
     return redirect(url_for('cart'))
 
+@app.route('/checkout')
+def checkout():
+    cart = session.get('cart', [])
+    if not cart:
+        return redirect(url_for('home'))
+    total = int(sum(item['price'] * item['quantity'] for item in cart))
+    100  # Paise
+    order_data = client.order.create({
+        'amount': total*100,
+        'currency': 'INR',
+        'receipt': f"order_{int(time.time())}"
+    })
+    return render_template_string(checkout_template, order=order_data, key_id=RAZORPAY_KEY_ID, total=total, cart=cart, bracelets=bracelets)
+        
+
+@app.route('/place_order', methods=['POST'])
+def place_order():
+    cart = session.get('cart', [])
+    if not cart:
+        return redirect(url_for('home'))
+    name = request.form.get('name','').strip()
+    email = request.form.get('email','').strip()
+    phone = request.form.get('phone','').strip()
+    address = request.form.get('address','').strip()
+    total = sum(item['price']*item['quantity'] for item in cart)
+    # This is the ONLY new block: Save to DB!
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    cur.execute('''
+        INSERT INTO orders (name,email,phone,address,items,total,placed_at)
+        VALUES (?,?,?,?,?,?,?)
+    ''', (name, email, phone, address, str(cart), total, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    con.commit(); con.close()
+    session['cart'] = []
+    order = {'name': name, 'email': email, 'phone': phone}
+    return render_template_string(confirmation_template, order=order)
+
+
+
+
+
+
+@app.route('/admin-login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        if request.form.get('password') == "MOHITJAIN": 
+            session['is_admin'] = True  # Sets the login session
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('admin_dashboard'))
+        return "Wrong Password! <a href='/admin-login'>Try again</a>"
+    
+    # This is the ACTUAL form that was missing in your previous screenshot
+    return '''
+        <div style="text-align:center; margin-top:100px; font-family: sans-serif;">
+            <h2>💎 Treasures Jewels Admin</h2>
+            <form method="post" style="display: inline-block; border: 1px solid #ccc; padding: 30px; border-radius: 12px; background: #fff;">
+                <input type="password" name="password" placeholder="Enter Password" style="padding: 12px; width: 250px; border-radius: 5px; border: 1px solid #ddd;"><br><br>
+                <button type="submit" style="padding: 10px 25px; background: #1d473a; color: white; border: none; cursor: pointer; border-radius: 5px; width: 100%;">Login</button>
+            </form>
+        </div>
+    '''
+ 
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    # This is your central hub with the two big buttons you requested
+    html = '''
+    <div style="text-align:center; padding:60px; font-family: sans-serif; background:#faf9f7; height:100vh;">
+        <h1 style="color: #1d473a;">💎 Admin Control Center</h1>
+        <p style="color: #666;">Welcome back! What would you like to manage today?</p>
+        <div style="margin-top:40px; display: flex; justify-content: center; gap: 20px;">
+            <a href="/admin/orders" style="display:block; padding:30px; width:250px; background:#1d473a; color:white; text-decoration:none; border-radius:15px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">📦 VIEW ORDERS</a>
+            <a href="/admin/messages" style="display:block; padding:30px; width:250px; background:#ccffdd; color:#1d473a; text-decoration:none; border-radius:15px; font-weight: bold; border:2px solid #1d473a; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">✉️ VIEW MESSAGES</a>
+        </div>
+        <br><br>
+        <a href="/admin/logout" style="color:#d9534f; text-decoration: none; font-weight: bold;">Logout & Lock System</a>
+    </div>
+    '''
+    return render_template_string(html)
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None) # Clears the session
+    return redirect(url_for('admin_login'))
+
+
+  
+@app.route('/admin/orders')
+@admin_required
+def admin_orders():
+    con = sqlite3.connect("orders.db")
+    con.row_factory = sqlite3.Row # This allows us to use order['id']
+    cur = con.cursor()
+    # We fetch ID and STATUS specifically so the buttons work
+    cur.execute("SELECT id, name, email, phone, address, total, status, placed_at FROM orders ORDER BY id DESC")
+    orders = cur.fetchall()
+    con.close()
+    
+    # Navigation added to the top of your existing admin_template
+    nav_html = '<div style="padding: 20px; background: #eee;"><a href="/admin/dashboard">← Back to Dashboard Hub</a></div>'
+    return render_template_string(nav_html + admin_template, orders=orders)
+
+
+
+@app.route('/admin/messages')
+@admin_required
+def admin_messages():
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    cur.execute("SELECT id, name, email, message, sent_at FROM messages ORDER BY id DESC")
+    messages = cur.fetchall()
+    con.close()
+    
+    # Re-using the style with a Dashboard link
+    nav_html = '<div style="padding: 20px; background: #eee;"><a href="/admin/dashboard">← Back to Dashboard Hub</a></div>'
+    return render_template_string(nav_html + message_html_template, messages=messages)
+
+
+@app.route('/mark_shipped/<int:order_id>')
+@admin_required
+def mark_shipped(order_id):
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    # This updates the status to 'Shipped' for that specific ID
+    cur.execute("UPDATE orders SET status = 'Shipped' WHERE id = ?", (order_id,))
+    con.commit()
+    con.close()
+    return redirect(url_for('admin_orders'))
+
+@app.route('/contact', methods=['POST'])
+def contact():
+    name = request.form['name']
+    email = request.form['email']
+    message = request.form['message']
+    from datetime import datetime
+    sent_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    con = sqlite3.connect("orders.db")
+    cur = con.cursor()
+    cur.execute(
+        "INSERT INTO messages (name, email, message, sent_at) VALUES (?, ?, ?, ?)",
+        (name, email, message, sent_at)
+    )
+    con.commit()
+    con.close()
+    return redirect(url_for('home')) 
+
+
+@app.route('/verify_payment', methods=['POST'])
+def verify_payment():
+    try:
+        # 1. Get payment details from Razorpay
+        order_id = request.form.get('razorpay_order_id')
+        payment_id = request.form.get('razorpay_payment_id')
+        signature = request.form.get('razorpay_signature')
+        
+        # 2. Get User details from the hidden form fields
+        name = request.form.get('name')
+        email = request.form.get('email')
+        phone = request.form.get('phone')
+        address = request.form.get('address')
+        total = request.form.get('total')
+
+        # 3. SAVE TO DATABASE (This makes it show up in Admin)
+        con = sqlite3.connect("orders.db")
+        cur = con.cursor()
+        cur.execute('''
+            INSERT INTO orders (name, email, phone, address, total, placed_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, email, phone, address, total, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        con.commit()
+        con.close()
+
+        # 4. Store in session for the Success Page
+        session['last_order'] = {'name': name, 'id': order_id}
+        
+        return "OK", 200
+    except Exception as e:
+        print(f"Error: {e}")
+        return str(e), 400
+
+@app.route('/success')
+def success():
+    # Retrieve the order data we just saved in the session above
+    order_data = session.get('last_order', {"name": "Valued Customer", "id": "TJ-SUCCESS"})
+    return render_template_string(confirmation_template, order=order_data)
+
+# 2. Update your Admin route to use this template
+# --- STEP 2: THE ADMIN ROUTE ---
+@app.route('/admin-panel') # Changing URL to avoid conflict
+def view_admin_panel():
+    # 'all_orders' must be the list where you saved your customer data
+    return render_template_string(admin_template, orders=all_orders)
+
+
+@app.route('/test-keys')
+def test_keys():
+    try:
+        order = client.order.create({'amount': 50000, 'currency': 'INR'})
+        return f"✅ SUCCESS! Order: {order['id']}<br>Key ID len: {len(RAZORPAY_KEY_ID)} Secret len: {len(RAZORPAY_KEY_SECRET)}"
+    except Exception as e:
+        return f"❌ FAIL: {e}<br>Check secret length (should be ~40 chars)"
+
+ 
+con = sqlite3.connect("orders.db")
+try:
+    con.execute("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'Pending'")
+    print("Column added!")
+except:
+    print("Column already exists.")
+con.close()
+
 
 if __name__ == "__main__":
-    app.run(debug=True)          
-
-
-
-
-
-
-
-
-
-
+    app.run(debug=True)
 
 
 
